@@ -1,15 +1,40 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 )
 
 func main() {
-	fmt.Println(listProcesses())
+	procs := listProcesses()
+	reader := bufio.NewReader(os.Stdin)
+
+	for idx, proc := range procs {
+		fmt.Printf("(%v) %v - %v\n", idx+1, proc.Executable, proc.Pid)
+	}
+	fmt.Println("\nEnter number of process to kill")
+
+	input, err := reader.ReadString('\n')
+
+	if err != nil {
+		log.Fatal("Error reading input", err)
+	}
+
+	input = strings.TrimSpace(input)
+	idx, err := strconv.Atoi(input)
+
+	if err != nil {
+		log.Fatalf("%v is not an option", input)
+	}
+	idx = idx - 1
+	proc := procs[idx]
+	kill(proc, "9")
 }
 
 type Process struct {
@@ -45,4 +70,12 @@ func listProcesses() []Process {
 		}
 	}
 	return processes
+}
+
+func kill(proc Process, signal string) {
+	if err := exec.Command("kill", "-"+signal, string(proc.Pid)).Start(); err != nil {
+		log.Fatal("Couldn't kill ", err)
+	}
+	fmt.Printf("Killed %v\n", proc.Executable)
+
 }
